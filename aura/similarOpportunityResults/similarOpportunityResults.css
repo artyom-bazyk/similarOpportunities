@@ -1,0 +1,12 @@
+.THIS .slds-button_icon-bare{
+    display: none;
+}
+.THIS .slds-spinner_container{
+    height: 100% !important;
+    width: 100%;
+    position: fixed;
+}
+.THIS.slds-card.card-style{
+    border: 0;
+    box-shadow: none;
+}

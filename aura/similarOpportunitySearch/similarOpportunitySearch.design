@@ -1,0 +1,8 @@
+<design:component>
+    <design:attribute name="field1" datasource="apex://SimilarOpportunityCriteriaPickList" />
+    <design:attribute name="field2" datasource="apex://SimilarOpportunityCriteriaPickList" />
+    <design:attribute name="field3" datasource="apex://SimilarOpportunityCriteriaPickList" />
+    <design:attribute name="field4" datasource="apex://SimilarOpportunityCriteriaPickList" />
+    <design:attribute name="field5" datasource="apex://SimilarOpportunityCriteriaPickList" />
+	
+</design:component>

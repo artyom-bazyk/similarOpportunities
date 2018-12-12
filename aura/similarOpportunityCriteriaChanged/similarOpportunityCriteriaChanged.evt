@@ -1,0 +1,6 @@
+<aura:event type="APPLICATION">
+    <aura:attribute name="allFields" type="List"/>
+    <aura:attribute name="selectedFields" type="List"/>
+    <aura:attribute name="selectedMonth" type="Integer"/>
+    
+</aura:event>
