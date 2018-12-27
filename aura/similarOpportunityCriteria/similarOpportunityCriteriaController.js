@@ -6,9 +6,9 @@
         var criteriaCheckboxes = cmp.find('criteria')
         for(var i = 0; i < criteriaCheckboxes.length; i++){
             if(criteriaCheckboxes[i].get("v.checked")){
-                selectedFields.push(nodes[i].apiName)
+                selectedFields.push(criteriaCheckboxes[i].get("v.value"))
             }
-            allFields.push(nodes[i].apiName)            
+            allFields.push(criteriaCheckboxes[i].get("v.value"))            
         }
         selectedFields = selectedFields.length > 0 ? selectedFields : allFields
         var criteriaChangedEvent = $A.get("e.c:similarOpportunityCriteriaChanged")

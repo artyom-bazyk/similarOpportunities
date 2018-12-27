@@ -1,32 +1,29 @@
-<aura:component implements="flexipage:availableForAllPageTypes" access="global" controller="SimilarOpportunitySearchController">
-    <aura:attribute name="allFields" type="List" />
-    <aura:attribute name="selectedFields" type="List" />
-    <aura:attribute name="opportunity" type="Opportunity" default="{'sobjectType':'Opportunity', 'Id':'0066F00000xB0Fq'}" />
-    <aura:attribute name="records" type="Object" access="private"/>
+<aura:component implements="flexipage:availableForAllPageTypes,lightning:isUrlAddressable" access="global" controller="SimilarOpportunitySearchController">
+    <aura:attribute name="allFields" type="String" />
+    <aura:attribute name="selectedFields" type="String" />
+    <aura:attribute name="opportunity" type="Opportunity" default="{'sobjectType':'Opportunity'}" />
     <aura:attribute name="nodes" type="Object" access="private"/>
     <aura:attribute name="lastNMonths" type="Integer" default="3"/>
-    <aura:attribute name="totalNumberOfRows" type="Integer" default="300"/>
-    <aura:attribute name="rowsToLoad" type="Integer" default="20"/>
-    <aura:attribute name="field1" type="String" />
-    <aura:attribute name="field2" type="String" />
-    <aura:attribute name="field3" type="String" />
-    <aura:attribute name="field4" type="String" />
-    <aura:attribute name="field5" type="String" />
     
     <aura:handler name="init" value="{! this }" action="{! c.init }"/>  
+	<aura:handler name="change" value="{!v.pageReference}" action="{!c.handleRefreshView}" />
     
-    <div class="flexbox-container">
-        <div class="slds-size_2-of-12">
-        	<c:similarOpportunityCriteria nodes="{!v.nodes}" />
+    <div class="flexbox-container ">
+        <div class="flex-item slds-size_2-of-12">
+            <c:similarOpportunityCriteria nodes="{!v.nodes}" selectedMonth="{!v.lastNMonths}"/>
         </div>
-		<div>
-        	<aura:if isTrue="{!not(empty(v.nodes))}">
-                    <c:similarOpportunityResults nodes="{!v.nodes}" 
+        <div style="width: 100%;">
+            <div class="flex-item" >
+                <aura:if isTrue="{!not(empty(v.nodes))}">
+                    <c:similarOpportunityResults aura:id="similarOpportunityResults" 
+                                                 nodes="{!v.nodes}" 
                                                  opportunity="{!v.opportunity}" 
                                                  allFields="{!v.allFields}"
                                                  selectedMonth="{!v.lastNMonths}"
-                                                 selectedFields="{!v.allFields}"/>                       
+                                                 selectedFields="{!v.selectedFields}"/>                       
                 </aura:if>
+            </div>
         </div>
-	</div>    
+    </div>   
+    
 </aura:component>

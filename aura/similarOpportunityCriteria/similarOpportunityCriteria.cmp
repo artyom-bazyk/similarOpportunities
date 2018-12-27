@@ -1,7 +1,7 @@
 <aura:component >
     <aura:attribute name="nodes" type="List" required="true"/>    
     <aura:attribute name="selectedMonth" type="String" />    
-    <aura:attribute name="monthsRange" type="String[]" default="Last 3 months,Last 6 months,Last 9 months"/>
+    <aura:attribute name="monthsRange" type="String[]" default="Last 3 months,Last 3-6 months,Last 6-9 months,Last 9-12 months"/>
     
     <aura:registerEvent name="similarOpportunityCriteriaChanged" type="c:similarOpportunityCriteriaChanged"/>
     
@@ -10,7 +10,7 @@
             <lightning:accordion allowMultipleSectionsOpen="true" activeSectionName="name">
                 <lightning:accordionSection name="name" label="Close Date Within">
                     <aura:set attribute="body">
-                        <ui:inputSelect value="{!v.selectedMonth}" class="slds-show_inline-block slds-accordion__section" change="{!c.onCriteriaClick}" >
+                        <ui:inputSelect value="{!v.selectedMonth}" class="close-date-select" change="{!c.onCriteriaClick}" >
                             <aura:iteration items="{!v.monthsRange}" var="month" indexVar="index">
                                 <option text="{!month}" value="{!(index+1)*3}"/>
                             </aura:iteration>                            
@@ -20,18 +20,20 @@
             </lightning:accordion>	            
             
             <aura:iteration items="{!v.nodes}" var="node">
-                <lightning:accordion allowMultipleSectionsOpen="true" activeSectionName="name">
-                    <lightning:accordionSection name="name" label="{!node.label}">
-                        <aura:set attribute="body">
-                            <lightning:layout multipleRows="true" >
-                                <lightning:layoutItem padding="horizontal-small"> 
-                                    <lightning:input type="checkbox" aura:id="criteria" label="{!node.value}" name="{!node.value}" onchange="{!c.onCriteriaClick}"/>                                    
-                                </lightning:layoutItem>
-                            </lightning:layout>
-                            
-                        </aura:set>
-                    </lightning:accordionSection>
-                </lightning:accordion>	
+                <aura:if isTrue="{!node.value != null}">
+                    <lightning:accordion allowMultipleSectionsOpen="true" activeSectionName="name">
+                        <lightning:accordionSection name="name" label="{!node.label}">
+                            <aura:set attribute="body">
+                                <lightning:layout multipleRows="true" >
+                                    <lightning:layoutItem padding="horizontal-small"> 
+                                        <lightning:input type="checkbox" aura:id="criteria" label="{!node.value}" value="{!node.apiName}" name="{!node.value}" onchange="{!c.onCriteriaClick}"/>                                    
+                                    </lightning:layoutItem>
+                                </lightning:layout>
+                                
+                            </aura:set>
+                        </lightning:accordionSection>
+                    </lightning:accordion>	
+                </aura:if>
             </aura:iteration>
         </p> 
         

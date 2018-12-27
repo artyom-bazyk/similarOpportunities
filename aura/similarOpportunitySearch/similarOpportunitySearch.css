@@ -1,14 +1,14 @@
 .THIS.flexbox-container {
-	display: flex;
+    display: flex;
+    justify-content: space-between;
 }
 
 .THIS.flexbox-container > div {
     background: rgb(255, 255, 255);
-	border-radius: .25rem;
+    border-radius: .25rem;
     box-shadow: 0 2px 2px 0 rgba(0, 0, 0, 0.10);
     border: 1px solid rgb(221, 219, 218);
 }
-
-.THIS.flexbox-container > div:first-child {
-	margin-right: 1rem;
+.THIS.flexbox-container > div:nth-child(2) {
+	margin-left:10px;
 }

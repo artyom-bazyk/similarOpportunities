@@ -7,6 +7,7 @@
             var action = cmp.get("c.findSimilarOpportunities")
             var opportunity = cmp.get("v.opportunity")
             var rowsToLoad = cmp.get("v.rowsToLoad")
+        	var isStrictMode = allFields.length != selectedFields.length            
             
             var jsonData = JSON.stringify({
                 opportunity:opportunity, 
@@ -14,14 +15,15 @@
                 selectedFields:selectedFields.join(','),
                 lastNMonths:selectedMonth,
                 rowsToLoad:rowsToLoad,
-                rowsToSkip:cmp.get('v.records').length            
+                rowsToSkip:cmp.get('v.records').length,
+                isStrictMode: isStrictMode                
             });
             action.setParams({jsonData : jsonData});        
             action.setCallback(this, function(response) {
                 var state = response.getState();
                 if (state === "SUCCESS") {
                     var jsonData = JSON.parse(response.getReturnValue())
-                    helper.processRecords(cmp, helper, jsonData.records)               
+                    helper.processRecords(cmp, helper, jsonData.records, jsonData.bookmarkedRecords)               
                     //cmp.set('v.totalNumberOfRows', jsonData.totalNumberOfRows)
                     //cmp.set('v.enableInfiniteLoading', true);          
                     resolve(jsonData.records);  
@@ -53,13 +55,23 @@
         }
     },   
     
-    processRecords : function (cmp, helper, records) {
-        var preselectedRows = cmp.get('v.preselectedRows')
-        var selectedRowSet = new Set(preselectedRows)        
+    processRecords : function (cmp, helper, records, bookmarkedIds) {
+        var preselectedRows = new Set(cmp.get('v.preselectedRows'))
+        var bookmarkedIdsSet = new Set(bookmarkedIds)
+        var allFields = cmp.get('v.allFields')
+        var opportunity = cmp.get('v.opportunity')
+		var maxRelevancyScore = cmp.get('v.nodes').length       
         records.forEach(function(record){
             record.LinkName = '/'+record.Id
-            if(record.Similar_Opportunity__c){
-                selectedRowSet.add(record.Id)
+            record.relevancyScore = 0;
+            allFields.forEach(function(field){
+                if(record[field] === opportunity[field] && record[field] != null){
+                    record.relevancyScore++
+                }
+            })
+            record.relevancy = record.relevancyScore + '/' + maxRelevancyScore
+            if(bookmarkedIdsSet.has(record.Id)){
+                preselectedRows.add(record.Id)
             }
             for (const col in record) {
                 const curCol = record[col];
@@ -72,10 +84,8 @@
                 }
             }
         }); 
-        preselectedRows = Array.from(selectedRowSet)
+        records.sort(function(a, b){return b.relevancyScore - a.relevancyScore});
         cmp.set('v.preselectedRows', preselectedRows)
-        var resultFrid = cmp.find('result-grid')
-        resultFrid.set('v.selectedRows', preselectedRows)        
     },     
     
     findSimilarOpportunities : function(cmp, helper, jsonData) {   
@@ -85,7 +95,7 @@
             var state = response.getState();
             if (state === "SUCCESS") {
                 var jsonData = JSON.parse(response.getReturnValue())
-                helper.processRecords(cmp, helper, jsonData.records)               
+                helper.processRecords(cmp, helper, jsonData.records, jsonData.bookmarkedRecords)               
                 cmp.set('v.records', jsonData.records)
                 cmp.set('v.totalNumberOfRows', jsonData.totalNumberOfRows)
                 cmp.set('v.enableInfiniteLoading', true);                

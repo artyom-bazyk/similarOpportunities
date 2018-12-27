@@ -1,0 +1,54 @@
+<aura:component implements="flexipage:availableForRecordHome,force:hasRecordId" access="global" controller="SimilarOpptyRelatedListController">
+    
+    <aura:attribute name="numberOfRecords" type="Integer" default="6"/>    
+    
+    <aura:attribute name="columns" type="List" />
+
+    <aura:attribute name="records" type="List" access="private"/>
+  
+    <aura:attribute name="totalNumberOfRows" type="String" access="private"/>    
+    <aura:attribute name="rowsToLoad" type="Integer" default="5"/>    
+    
+    <aura:attribute name="allFields" type="List" />
+    <aura:attribute name="field1" type="String" />
+    <aura:attribute name="field2" type="String" />
+    <aura:attribute name="field3" type="String" />
+    <aura:attribute name="field4" type="String" />
+    <aura:attribute name="field5" type="String" />    
+    
+    <aura:handler name="init" value="{!this}" action="{!c.init}"/>
+    <lightning:navigation aura:id="navService"/>
+    
+    <div class="c-container">
+        <lightning:card class="slds-card_boundary" iconName="{!v.iconName}">
+            <aura:set attribute="actions">
+                <lightning:button label="Find" onclick="{!c.hanldeFindButton}"/>
+            </aura:set>     
+            <aura:set attribute="title">
+                <b>Similar Opportunities</b>
+            </aura:set>             
+            <aura:set attribute="footer">
+                <aura:if isTrue="{!and(not(empty(v.records)), v.totalNumberOfRows > v.records.length)}">  
+                    <a onclick="{!c.handleShowMore}">Show more</a>
+                </aura:if>
+            </aura:set>                
+            <p class="slds-p-horizontal_small">       
+                <aura:if isTrue="{!not(empty(v.records))}">                      
+                    <lightning:datatable columns="{! v.columns }"
+                                         data="{! v.records }"
+                                         keyField="Id"
+                                         onrowaction="{! c.handleRowAction }"
+                                         hideCheckboxColumn="true"
+                                         resizeColumnDisabled="true"/> 
+                    <aura:set attribute="else">
+                        <div class="slds-align_absolute-center">
+                            No records to display.
+                        </div>
+                    </aura:set>                    
+                </aura:if>                    
+            </p>               
+            
+        </lightning:card>
+    </div>
+    
+</aura:component>

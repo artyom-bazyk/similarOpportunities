@@ -1,8 +1,12 @@
 ({
-    init : function(cmp, event, helper) {
-        
+    init : function(cmp, event, helper) {     
+        var resultGrid = cmp.find('result-grid')
+        if(resultGrid){
+	        resultGrid.set('v.selectedRows', [])              
+	        cmp.set('v.preselectedRows', [])              
+        }
         var nodes = cmp.get('v.nodes')
-        var columns = [ { label: 'OPPORTUNITY  Name', fieldName: 'LinkName', type: 'url', typeAttributes: {label: { fieldName: 'Name' }, target: '_top'} }
+        var columns = [ { label: 'Name', fieldName: 'LinkName', type: 'url', typeAttributes: {label: { fieldName: 'Name' }, target: '_top'} }
                       ]
         nodes.forEach(function(node){
             var column = {label: node.label, fieldName: node.apiName, type: node.type.toLowerCase()}
@@ -21,16 +25,15 @@
             }
             columns.push(column)
         })
-        
+        columns.push({ label: 'Relevancy', fieldName: 'relevancy', type: 'text'})
         cmp.set('v.columns', columns)		
         
         var action = cmp.get("c.initData")
         var allFields = cmp.get("v.allFields")
-        var selectedFields = JSON.parse(JSON.stringify( allFields ));
-        cmp.set("v.selectedFields", selectedFields)
+        var selectedFields = cmp.get("v.selectedFields")
         var opportunity = cmp.get("v.opportunity")
         var rowsToLoad = cmp.get("v.rowsToLoad")
-        var jsonData = JSON.stringify({fields:allFields.join(','),
+        var jsonData = JSON.stringify({fields:allFields.join(','), 
                                        recordId:opportunity.Id,
                                        lastNMonths:cmp.get("v.selectedMonth"),
                                        rowsToLoad:rowsToLoad
@@ -40,11 +43,9 @@
             var state = response.getState();
             if (state === "SUCCESS") {
                 var jsonData = JSON.parse(response.getReturnValue())
-                var records = jsonData.records
-                helper.processRecords(cmp, helper, records)               
-                cmp.set('v.records', records)
-                cmp.set('v.totalNumberOfRows', jsonData.totalNumberOfRows)    
-                 
+                helper.processRecords(cmp, helper, jsonData.records, jsonData.bookmarkedRecords)               
+                cmp.set('v.records', jsonData.records)
+                cmp.set('v.totalNumberOfRows', jsonData.totalNumberOfRows)                  
                 
             }else if (state === "ERROR") {
                 var errors = response.getError();
@@ -77,9 +78,6 @@
                 var currentData = cmp.get('v.records')
                 var newData = currentData.concat(data);
                 cmp.set('v.records', newData);
-                var preselectedRows = cmp.get('v.preselectedRows')
-                var resultFrid = cmp.find('result-grid')
-                resultFrid.set('v.selectedRows', preselectedRows)                 
                 if (newData.length >= totalNumberOfRows) {
                     cmp.set('v.enableInfiniteLoading', false);
                 } 
@@ -99,7 +97,8 @@
         cmp.set("v.selectedFields", selectedFields)
         
         var opportunity = cmp.get("v.opportunity")
-        var rowsToLoad = cmp.get("v.rowsToLoad")        
+        var rowsToLoad = cmp.get("v.rowsToLoad")     
+        var isStrictMode = allFields.length != selectedFields.length
         
         var jsonData = JSON.stringify({
             opportunity:opportunity, 
@@ -107,7 +106,8 @@
             selectedFields:selectedFields.join(','),
 			lastNMonths:selectedMonth,
             rowsToLoad:rowsToLoad,
-            rowsToSkip:0            
+            rowsToSkip:0,  
+            isStrictMode: isStrictMode
         });        
         helper.findSimilarOpportunities(cmp, helper, jsonData)     
     },
@@ -152,12 +152,22 @@
         selectedRowsFromEvent.forEach(function(row){
             selectedRowSet.add(row.Id)
         })
-        var resultFrid = cmp.find('result-grid')
-        resultFrid.set('v.selectedRows', Array.from(selectedRowSet))        
+        var resultGrid = cmp.find('result-grid')
+        resultGrid.set('v.selectedRows', Array.from(selectedRowSet))        
     },    
     
     handleCancelButton: function (cmp, event, helper) {
         var opportunity = cmp.get("v.opportunity")
         helper.navigateToOpportunity(cmp, helper, opportunity.Id)     
+    },     
+    
+    handleRecordsChange: function (cmp, event, helper) {
+        var preselectedRows = new Set(cmp.get('v.preselectedRows'))
+        var resultGrid = cmp.find('result-grid')
+        if(resultGrid){
+            var selectedRows = new Set(resultGrid.get('v.selectedRows'))
+	        preselectedRows = new Set([...preselectedRows, ...selectedRows])    
+            resultGrid.set('v.selectedRows', Array.from(preselectedRows))                    
+        }
     },     
 })

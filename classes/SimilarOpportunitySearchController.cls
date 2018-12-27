@@ -1,10 +1,15 @@
 public class SimilarOpportunitySearchController {
     public static final String OR_CLAUSE = 'OR';
+    public static final String AND_CLAUSE = 'AND';
+    public static final String YYYMMDD_FORMAT = 'yyy-MM-dd';
+    public static final Integer CLOSE_DATE_RANGE = 3;
+    public static final Integer ROWS_TO_LOAD = 300;
     
     @AuraEnabled
     public static String initData(String jsonData){
         Map<String, Object> requestMap = (Map<String, Object>)JSON.deserializeUntyped(jsonData);          
         system.debug(requestMap);
+        system.debug(requestMap.get('fields'));
         Map<String, Object> responseMap = new Map<String, Object>(); 
         List<String> fields = ((String)requestMap.get('fields')).split(',');
         
@@ -12,33 +17,42 @@ public class SimilarOpportunitySearchController {
         Set<String> fieldsForWhere = new Set<String>(fields);
         fieldsForSelect.addAll(getLookupNames(fieldsForSelect));
         fieldsForSelect.add('Name');
-        fieldsForSelect.add('Similar_Opportunity__c');
         Id oppId = (Id)requestMap.get('recordId');
         Integer lastNMonths = (Integer)requestMap.get('lastNMonths');
-        Integer rowsToLoad = (Integer)requestMap.get('rowsToLoad');
         system.debug(fieldsForSelect);
         Opportunity opp = (Opportunity)Database.query('SELECT '+String.join(new List<String>(fieldsForSelect),',')+' FROM Opportunity WHERE Id=:oppId').get(0);
-        Integer totalNumberOfRows = getSimilarOpportunitiesAmount(opp, lastNMonths, fieldsForWhere);
+        Integer totalNumberOfRows = getSimilarOpportunitiesAmount(opp, lastNMonths, fieldsForWhere, false);
         responseMap.put('totalNumberOfRows', totalNumberOfRows);
-        responseMap.put('records', (List<Opportunity>)findSimilarOpportunities(opp, lastNMonths, fieldsForSelect, fieldsForWhere, rowsToLoad, 0));
+        List<Opportunity> records = findSimilarOpportunities(opp, lastNMonths, fieldsForSelect, fieldsForWhere, false);
+        responseMap.put('records', records);
+        responseMap.put('bookmarkedRecords', getBookmarkedOpportunities(oppId, records));
         responseMap.put('opportunity', opp);
         responseMap.put('nodes', getCriteria(new List<String>(fieldsForWhere), opp));
         return JSON.serialize(responseMap);       
     }
     
     public static List<Sobject> findSimilarOpportunities(Opportunity opp, Integer lastNMonths, Set<String> fieldsForSelect, 
-                                                         Set<String> fieldsForWhere, Integer rowsToLoad, Integer rowsToSkip){
-        String query = getSimilarOpportunitiesQuery(opp, lastNMonths, fieldsForSelect, fieldsForWhere);
-        query += ' ORDER BY Name LIMIT :rowsToLoad OFFSET :rowsToSkip ';
+                                                         Set<String> fieldsForWhere, Boolean isStrictMode){
+		String query = getSimilarOpportunitiesQuery(opp, lastNMonths, fieldsForSelect, fieldsForWhere, isStrictMode);
+        query += ' ORDER BY Name LIMIT :ROWS_TO_LOAD ';
         System.debug(query);
-    	return Database.query(query);
-    }
+        return Database.query(query);
+	}
     
-    public static Integer getSimilarOpportunitiesAmount(Opportunity opp, Integer lastNMonths, Set<String> fieldsForWhere){
-        String query = getSimilarOpportunitiesQuery(opp, lastNMonths, new Set<String>{'count(Id)'}, fieldsForWhere);
+    public static Integer getSimilarOpportunitiesAmount(Opportunity opp, Integer lastNMonths, Set<String> fieldsForWhere, Boolean isStrictMode){
+        String query = getSimilarOpportunitiesQuery(opp, lastNMonths, new Set<String>{'count(Id)'}, fieldsForWhere, isStrictMode);
         System.debug(query);
         List<AggregateResult> aggrResult = Database.query(query);
-    	return (Integer)aggrResult.get(0).get('expr0');
+        return (Integer)aggrResult.get(0).get('expr0');
+    }    
+    
+    public static List<Id> getBookmarkedOpportunities(Id oppId, List<Opportunity> optyList){
+        List<Bookmark> bookmarkedOppties = [Select Id, FromId, ToId From Bookmark Where FromId =:oppId And ToId IN :optyList And IsDeleted = false];
+        List<Id> oppIds = new List<Id>();
+        for(Bookmark bookmark : bookmarkedOppties){
+            oppIds.add(bookmark.ToId);
+        }    
+        return oppIds;
     }    
     
     @AuraEnabled    
@@ -50,21 +64,28 @@ public class SimilarOpportunitySearchController {
         //List<Id> opportunityIds = (List<Id>)requestMap.get('opportunityIds');
         System.debug(opportunityIds);
         Id recordId = (Id)requestMap.get('recordId');        
-        List<Opportunity> oppList = new List<Opportunity>();
+        List<Bookmark> bookmarkList = new List<Bookmark>();
         for(Id oppId : opportunityIds){
-            Opportunity opp = new Opportunity(
-                Id = oppId,
-                Similar_Opportunity__c = recordId
-            );
-            oppList.add(opp);
+            Bookmark bookmark = new Bookmark(
+                FromId = recordId,
+                ToId = oppId
+            );            
+            bookmarkList.add(bookmark);
         }
-        update oppList;
+        insert bookmarkList;
         
-    } 
+    }       
     
-    public static String getSimilarOpportunitiesQuery(Opportunity opp, Integer lastNMonths, Set<String> fieldsForSelect, Set<String> fieldsForWhere){
-        String query = 'SELECT '+String.join(new List<String>(fieldsForSelect),',')+' FROM Opportunity WHERE Id != \''+opp.Id+'\' AND StageName = \'Closed Won\' AND CloseDate = LAST_N_MONTHS:'+lastNMonths+' AND (';
+    public static String getSimilarOpportunitiesQuery(Opportunity opp, Integer lastNMonths, Set<String> fieldsForSelect, Set<String> fieldsForWhere, Boolean isStrictMode){
+        Date lowerRange = System.today().addMonths(-lastNMonths);
+        String lowerRangeFormatted = Datetime.newInstance(lowerRange.year(), lowerRange.month(), lowerRange.day()).format(YYYMMDD_FORMAT); 
+        Date upperRange = System.today().addMonths(-(lastNMonths - CLOSE_DATE_RANGE));
+        String upperRangeFormatted = Datetime.newInstance(upperRange.year(), upperRange.month(), upperRange.day()).format(YYYMMDD_FORMAT); 
+        
+        String query = 'SELECT '+String.join(new List<String>(fieldsForSelect),',')+' FROM Opportunity WHERE Id != \''+opp.Id+'\' AND StageName = \'Closed Won\' AND CloseDate >= ' +lowerRangeFormatted +' AND CloseDate <= '+upperRangeFormatted +' AND (';
         Map<String, Schema.SObjectField> fieldMap = Opportunity.SObjectType.getDescribe().fields.getMap();
+                System.debug(fieldsForWhere);
+        String clause = isStrictMode ? AND_CLAUSE : OR_CLAUSE;
         for(String field : fieldsForWhere){
             Schema.DescribeFieldResult descField = fieldMap.get(field).getDescribe();
             if(opp.get(field) != null){
@@ -72,40 +93,40 @@ public class SimilarOpportunitySearchController {
                 if(descField.getType() == Schema.DisplayType.DATE){
                     Date d = (Date)opp.get(field);
                     String dateFormatted = Datetime.newInstance(d.year(), d.month(), d.day()).format('yyy-MM-dd');                  
-		            query += ' ' +field + ' = ' + dateFormatted + ' ' + OR_CLAUSE;                                    
+                    query += ' ' +field + ' = ' + dateFormatted + ' ' + clause;                                    
                 }else if(descField.getType() == Schema.DisplayType.BOOLEAN
                          || descField.getType() == Schema.DisplayType.PERCENT
                          || descField.getType() == Schema.DisplayType.CURRENCY){
-		            query += ' ' +field + ' = ' + opp.get(field) + ' ' + OR_CLAUSE;                                    
-                }else{
-		            query += ' ' +field + ' = \'' + opp.get(field) + '\' ' + OR_CLAUSE;                                    
-                }
+                             query += ' ' +field + ' = ' + opp.get(field) + ' ' + clause;                                    
+                         }else{
+                             query += ' ' +field + ' = \'' + opp.get(field) + '\' ' + clause;                                    
+                         }
             }
         }
-        query = query.removeEnd(OR_CLAUSE) + ')  ';
-    	return query;
+        query = query.removeEnd(clause) + ')  ';
+        return query;
     }    
     
     @AuraEnabled
     public static String findSimilarOpportunities(String jsonData){
         Map<String, Object> requestMap = (Map<String, Object>)JSON.deserializeUntyped(jsonData);       
-		system.debug(requestMap);        
+        system.debug(requestMap);        
         Map<String, Object> responseMap = new Map<String, Object>(); 
         List<String> fields = ((String)requestMap.get('fields')).split(',');
         List<String> selectedFields = ((String)requestMap.get('selectedFields')).split(',');
         Set<String> fieldsForSelect = new Set<String>(fields);
         fieldsForSelect.addAll(getLookupNames(fieldsForSelect));        
         fieldsForSelect.add('Name');      
-        fieldsForSelect.add('Similar_Opportunity__c');        
         Set<String> fieldsForWhere = new Set<String>(selectedFields);              
         String oppJson = JSON.serialize(requestMap.get('opportunity'));
         Opportunity opp = (Opportunity)JSON.deserialize(oppJson, Opportunity.class);
         Integer lastNMonths = (Integer)requestMap.get('lastNMonths');
-        Integer rowsToLoad = (Integer)requestMap.get('rowsToLoad');
-        Integer rowsToSkip = (Integer)requestMap.get('rowsToSkip');
-        Integer totalNumberOfRows = getSimilarOpportunitiesAmount(opp, lastNMonths, fieldsForWhere);
+        Boolean isStrictMode = (Boolean)requestMap.get('isStrictMode');
+        Integer totalNumberOfRows = getSimilarOpportunitiesAmount(opp, lastNMonths, fieldsForWhere, isStrictMode);
         responseMap.put('totalNumberOfRows', totalNumberOfRows);        
-        responseMap.put('records', findSimilarOpportunities(opp, lastNMonths, fieldsForSelect, fieldsForWhere, rowsToLoad, rowsToSkip));
+        List<Opportunity> records = findSimilarOpportunities(opp, lastNMonths, fieldsForSelect, fieldsForWhere, isStrictMode);
+        responseMap.put('records', records);
+        responseMap.put('bookmarkedRecords', getBookmarkedOpportunities(opp.Id, records));        
         return JSON.serialize(responseMap);            
     }
     
@@ -125,23 +146,24 @@ public class SimilarOpportunitySearchController {
                 for (String parentFieldName: parentFieldMap.keySet()){
                     Schema.DescribeFieldResult parentDescField = parentFieldMap.get(parentFieldName).getDescribe();
                     if(parentDescField.isAutoNumber() || parentDescField.isNameField()){
-		                Sobject parent = opp.getSobject(descField.getRelationshipName());
-		            	node.value = parent == null ? '' : (String)parent.get(parentDescField.getName());
-		            	node.apiRelationshipName = descField.getRelationshipName();
+                        Sobject parent = opp.getSobject(descField.getRelationshipName());
+                        node.value = parent == null ? null : (String)parent.get(parentDescField.getName());
+                        node.apiRelationshipName = descField.getRelationshipName();
                         node.apiNameOnParent = parentDescField.getName();
                         break;
                     }
                 }
             }else{
-            	node.value = opp.get(fieldName) == null ? '' : opp.get(fieldName);                
+                node.value =  opp.get(fieldName);                
             }
-            nodes.add(node);
+            nodes.add(node);                
         }
+        System.debug('nodes ' +nodes);
         
         return nodes;
     }
     
-    private static List<String> getLookupNames(Set<String> fields){
+    public static List<String> getLookupNames(Set<String> fields){
         List<String> lookupFields = new List<String>();
         Map<String, Schema.SObjectField> fieldMap = Opportunity.SObjectType.getDescribe().fields.getMap();
         for(String field : fields){
@@ -155,9 +177,8 @@ public class SimilarOpportunitySearchController {
                         break;
                     }
                 }            
-			}
+            }
         }        
-        System.debug(lookupFields);
         return lookupFields;
     }
     

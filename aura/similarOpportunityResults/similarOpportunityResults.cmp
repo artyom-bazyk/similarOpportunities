@@ -4,44 +4,54 @@
     <aura:attribute name="records" type="Object" />
     <aura:attribute name="columns" type="Object" access="private"/>
     <aura:attribute name="nodes" type="Object" />    
+    <aura:attribute name="maxRelevancyScore" type="Integer" access="private" default="0"/>    
     <aura:attribute name="loadMoreOffset" type="Integer" default="10"/>
-    <aura:attribute name="rowsToLoad" type="Integer" default="20"/>    
+    <aura:attribute name="rowsToLoad" type="Integer" default="30"/>    
     <aura:attribute name="enableInfiniteLoading" type="Boolean" default="true"/>
-    <aura:attribute name="totalNumberOfRows" type="Integer" default="300"/>
+    <aura:attribute name="totalNumberOfRows" type="Integer" default="30"/>
     
-    <aura:attribute name="selectedFields" type="List"/>
+    <aura:attribute name="selectedFields" type="String"/>
     <aura:attribute name="selectedMonth" type="String"/>
-    <aura:attribute name="allFields" type="List"/>
-    <aura:attribute name="preselectedRows" type="Set" default="[]"/>
+    <aura:attribute name="allFields" type="String"/>
+    <aura:attribute name="preselectedRows" type="Object" />
     
     <aura:handler name="init" value="{! this }" action="{! c.init }"/>  
     <aura:handler event="c:similarOpportunityCriteriaChanged" action="{!c.handleSimilarOpportunityCriteriaChanged}"/>
+	<aura:handler name="change" value="{!v.records}" action="{!c.handleRecordsChange}"/>
+
     
-    <lightning:card title="" class="card-style">
-        <p class="slds-p-horizontal_small">     
-            <div class="slds-align_absolute-center" style="padding-bottom: 0.5rem;">
-                <lightning:button label="Bookmark" onclick="{!c.handleBokmarkButton}"/>
-                <lightning:button label="Cancel" onclick="{!c.handleCancelButton}"/>
-            </div>
-            <div style="height: 400px">
-                <lightning:datatable aura:id="result-grid"
-                                     columns="{! v.columns}"
-                                     data="{! v.records }"
-                                     keyField="Id"
-                                     hideCheckboxColumn="false"
-                                     resizeColumnDisabled="true"
-                                     enableInfiniteLoading="{!v.enableInfiniteLoading}"
-                                     loadMoreOffset="{! v.loadMoreOffset }"
-                                     onloadmore="{! c.loadMoreData }"
-                                     showRowNumberColumn="true"
-                                     onrowselection="{! c.handleonrowselection }"/>  
-                <aura:if isTrue="{!empty(v.records)}">
-                    <div class="slds-align_absolute-center" style="height: 5rem;">
-                        No records to display.
-                    </div>                                
-                </aura:if> 
-            </div>
-        </p>
+    <div class="slds-align_absolute-center" style="padding: 0.75rem;">
+        <aura:if isTrue="{!not(empty(v.records))}"> 
+            <lightning:button label="Bookmark" onclick="{!c.handleBokmarkButton}"/>
+        </aura:if>
+        <lightning:button label="Cancel" onclick="{!c.handleCancelButton}"/>
+    </div>
+    <aura:if isTrue="{!not(empty(v.records))}">            
+        <div style="height: 300px">
+            <lightning:datatable aura:id="result-grid"
+                                 columns="{! v.columns}"
+                                 data="{! v.records }"
+                                 keyField="Id"
+                                 hideCheckboxColumn="false"
+                                 resizeColumnDisabled="true"
+                                 enableInfiniteLoading="{!v.enableInfiniteLoading}"
+                                 loadMoreOffset="{! v.loadMoreOffset }"
+                                 onloadmore="{! c.loadMoreData }"
+                                 showRowNumberColumn="true"
+                                 onrowselection="{! c.handleonrowselection }"/>  
+            
+        </div>
+        <!--<aura:if isTrue="{!and(not(empty(v.records)), v.totalNumberOfRows > v.records.length)}">  -->
+                        <div class="slds-align_absolute-center" style="padding: 0.75rem;">
+                            <a onclick="{!c.handleShowMore}">Show more</a>
+                        </div>        
+            
+        <aura:set attribute="else">
+            <div class="slds-align_absolute-center">
+                No records to display.
+            </div> 
+        </aura:set>                
         
-    </lightning:card>
+    </aura:if>             
+    
 </aura:component>
