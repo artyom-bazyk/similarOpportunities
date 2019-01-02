@@ -4,4 +4,8 @@
     <design:attribute name="field3" datasource="apex://SimilarOpportunityCriteriaPickList" />
     <design:attribute name="field4" datasource="apex://SimilarOpportunityCriteriaPickList" />
     <design:attribute name="field5" datasource="apex://SimilarOpportunityCriteriaPickList" />	
+    
+    <sfdc:objects>
+        <sfdc:object>Opportunity</sfdc:object>
+    </sfdc:objects>    
 </design:component>

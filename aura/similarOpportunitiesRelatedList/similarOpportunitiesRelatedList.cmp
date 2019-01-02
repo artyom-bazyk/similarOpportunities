@@ -1,15 +1,9 @@
 <aura:component implements="flexipage:availableForRecordHome,force:hasRecordId" access="global" controller="SimilarOpptyRelatedListController">
-    
-    <aura:attribute name="numberOfRecords" type="Integer" default="6"/>    
-    
-    <aura:attribute name="columns" type="List" />
-
+    <aura:attribute name="columns" type="List" access="private"/>
     <aura:attribute name="records" type="List" access="private"/>
-  
     <aura:attribute name="totalNumberOfRows" type="String" access="private"/>    
-    <aura:attribute name="rowsToLoad" type="Integer" default="5"/>    
-    
-    <aura:attribute name="allFields" type="List" />
+    <aura:attribute name="rowsToLoad" type="Integer" default="6" access="private"/>        
+    <aura:attribute name="allFields" type="List" access="private"/>
     <aura:attribute name="field1" type="String" />
     <aura:attribute name="field2" type="String" />
     <aura:attribute name="field3" type="String" />
@@ -39,7 +33,8 @@
                                          keyField="Id"
                                          onrowaction="{! c.handleRowAction }"
                                          hideCheckboxColumn="true"
-                                         resizeColumnDisabled="true"/> 
+                                         resizeColumnDisabled="true"
+                                         class="related-list"/> 
                     <aura:set attribute="else">
                         <div class="slds-align_absolute-center">
                             No records to display.

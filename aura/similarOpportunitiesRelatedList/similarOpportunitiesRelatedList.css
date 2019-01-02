@@ -1,3 +1,9 @@
 .THIS .slds-button_icon-bare{
     display: none;
 }
+.THIS .related-list .slds-scrollable_y{
+    width: 100% !important;
+}
+.THIS .related-list .slds-table_header-fixed{
+    width: 100% !important;
+}

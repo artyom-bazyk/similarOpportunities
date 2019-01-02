@@ -1,51 +1,43 @@
 <aura:component controller="SimilarOpportunitySearchController">
-    <aura:attribute name="criteriaFields" type="List" />
     <aura:attribute name="opportunity" type="Opportunity" />
-    <aura:attribute name="records" type="Object" />
+    <aura:attribute name="records" type="List" default="[]" access="private"/>
+    <aura:attribute name="allRecords" type="List" access="private"/>
     <aura:attribute name="columns" type="Object" access="private"/>
-    <aura:attribute name="nodes" type="Object" />    
-    <aura:attribute name="maxRelevancyScore" type="Integer" access="private" default="0"/>    
-    <aura:attribute name="loadMoreOffset" type="Integer" default="10"/>
-    <aura:attribute name="rowsToLoad" type="Integer" default="30"/>    
-    <aura:attribute name="enableInfiniteLoading" type="Boolean" default="true"/>
-    <aura:attribute name="totalNumberOfRows" type="Integer" default="30"/>
+    <aura:attribute name="fieldDescriptionList" type="Object" />    
+    <aura:attribute name="maxRelevancyScore" type="Integer" access="private" />    
+    <aura:attribute name="rowsToLoad" type="Integer" default="20" access="private"/>    
     
     <aura:attribute name="selectedFields" type="String"/>
     <aura:attribute name="selectedMonth" type="String"/>
-    <aura:attribute name="allFields" type="String"/>
-    <aura:attribute name="preselectedRows" type="Object" />
+    <aura:attribute name="allFields" type="String" />
+    <aura:attribute name="preselectedRows" type="Object" access="private"/>
     
-    <aura:handler name="init" value="{! this }" action="{! c.init }"/>  
     <aura:handler event="c:similarOpportunityCriteriaChanged" action="{!c.handleSimilarOpportunityCriteriaChanged}"/>
-	<aura:handler name="change" value="{!v.records}" action="{!c.handleRecordsChange}"/>
-
+    <aura:handler name="change" value="{!v.records}" action="{!c.handleRecordsChange}"/>
+    <aura:method name="init" action="{!c.init}"/>
     
-    <div class="slds-align_absolute-center" style="padding: 0.75rem;">
+    <div class="slds-align_absolute-center">
         <aura:if isTrue="{!not(empty(v.records))}"> 
             <lightning:button label="Bookmark" onclick="{!c.handleBokmarkButton}"/>
         </aura:if>
         <lightning:button label="Cancel" onclick="{!c.handleCancelButton}"/>
     </div>
     <aura:if isTrue="{!not(empty(v.records))}">            
-        <div style="height: 300px">
-            <lightning:datatable aura:id="result-grid"
-                                 columns="{! v.columns}"
-                                 data="{! v.records }"
-                                 keyField="Id"
-                                 hideCheckboxColumn="false"
-                                 resizeColumnDisabled="true"
-                                 enableInfiniteLoading="{!v.enableInfiniteLoading}"
-                                 loadMoreOffset="{! v.loadMoreOffset }"
-                                 onloadmore="{! c.loadMoreData }"
-                                 showRowNumberColumn="true"
-                                 onrowselection="{! c.handleonrowselection }"/>  
-            
-        </div>
-        <!--<aura:if isTrue="{!and(not(empty(v.records)), v.totalNumberOfRows > v.records.length)}">  -->
-                        <div class="slds-align_absolute-center" style="padding: 0.75rem;">
-                            <a onclick="{!c.handleShowMore}">Show more</a>
-                        </div>        
-            
+        <lightning:datatable aura:id="result-grid"
+                             columns="{! v.columns}"
+                             data="{! v.records }"
+                             keyField="Id"
+                             hideCheckboxColumn="false"
+                             resizeColumnDisabled="true"
+                             showRowNumberColumn="true"
+                             onrowselection="{! c.handleonrowselection }"/>  
+        
+        <div class="slds-align_absolute-center">
+            <aura:if isTrue="{!and(not(empty(v.records)), v.allRecords.length > v.records.length)}">  
+                <a onclick="{!c.handleShowMore}">Show more</a>
+            </aura:if>
+        </div>        
+        
         <aura:set attribute="else">
             <div class="slds-align_absolute-center">
                 No records to display.

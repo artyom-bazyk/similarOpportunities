@@ -1,46 +1,35 @@
 ({
-    fetchData: function(cmp, helper){
-        return new Promise($A.getCallback(function(resolve, reject) {
-            var selectedFields = cmp.get("v.selectedFields")
-            var allFields = cmp.get("v.allFields")
-            var selectedMonth = cmp.get("v.selectedMonth")
-            var action = cmp.get("c.findSimilarOpportunities")
-            var opportunity = cmp.get("v.opportunity")
-            var rowsToLoad = cmp.get("v.rowsToLoad")
-        	var isStrictMode = allFields.length != selectedFields.length            
-            
-            var jsonData = JSON.stringify({
-                opportunity:opportunity, 
-                fields:allFields.join(','),
-                selectedFields:selectedFields.join(','),
-                lastNMonths:selectedMonth,
-                rowsToLoad:rowsToLoad,
-                rowsToSkip:cmp.get('v.records').length,
-                isStrictMode: isStrictMode                
-            });
-            action.setParams({jsonData : jsonData});        
-            action.setCallback(this, function(response) {
-                var state = response.getState();
-                if (state === "SUCCESS") {
-                    var jsonData = JSON.parse(response.getReturnValue())
-                    helper.processRecords(cmp, helper, jsonData.records, jsonData.bookmarkedRecords)               
-                    //cmp.set('v.totalNumberOfRows', jsonData.totalNumberOfRows)
-                    //cmp.set('v.enableInfiniteLoading', true);          
-                    resolve(jsonData.records);  
-                }else if (state === "ERROR") {
-                    var errors = response.getError();
-                    if (errors) {
-                        if (errors[0] && errors[0].message) {
-                            console.log("Error message: " + errors[0].message);
-                        }
-                    } else {
-                        console.log("Unknown error");
-                    }
+    buildColumns: function (cmp, helper, fieldDescriptionList) {
+        var columns = [ { label: 'Name', fieldName: 'LinkName', type: 'url', typeAttributes: {label: { fieldName: 'Name' }, target: '_top'} }
+                      ]
+        fieldDescriptionList.forEach(function(fieldDescription){
+            if(fieldDescription.apiName != 'Name'){             
+                var column = {label: fieldDescription.label, fieldName: fieldDescription.apiName, type: fieldDescription.type.toLowerCase()}
+                if(column.type === 'currency'
+                   || column.type === 'percent'){
+                    column.cellAttributes = { alignment: 'left' }
+                }else if(column.type === 'date'){
+                    column.typeAttributes = {month:"2-digit", day:"2-digit"}
+                    column.type = 'date-local'
+                }else if(column.type === 'reference'){
+                    var linkName = fieldDescription.apiRelationshipName + '_' + fieldDescription.apiNameOnParent
+                    var fieldName = fieldDescription.apiRelationshipName + '_LinkName'
+                    column.typeAttributes = {label: { fieldName: linkName }, target: '_top'}
+                    column.type = 'url'
+                    column.fieldName = fieldName
                 }
-            })
-            $A.enqueueAction(action) 
-            
-        }));
+                columns.push(column)
+            }
+        })
+        columns.push({ label: 'Relevancy', fieldName: 'relevancy', type: 'text'})
+        return columns
+	},
+    
+    fetchData: function(cmp, helper, allRecords, records){        
+        var rowsToLoad = cmp.get('v.rowsToLoad')
+        var newData = allRecords.slice(records.length, records.length + rowsToLoad)
+		records = records.concat(newData)
+        return records
         
     } ,
     
@@ -60,7 +49,7 @@
         var bookmarkedIdsSet = new Set(bookmarkedIds)
         var allFields = cmp.get('v.allFields')
         var opportunity = cmp.get('v.opportunity')
-		var maxRelevancyScore = cmp.get('v.nodes').length       
+		var maxRelevancyScore = cmp.get('v.fieldDescriptionList').length       
         records.forEach(function(record){
             record.LinkName = '/'+record.Id
             record.relevancyScore = 0;
@@ -88,26 +77,19 @@
         cmp.set('v.preselectedRows', preselectedRows)
     },     
     
-    findSimilarOpportunities : function(cmp, helper, jsonData) {   
-        var action = cmp.get("c.findSimilarOpportunities")
-        action.setParams({jsonData : jsonData});        
+    findSimilarOpportunities : function(cmp, helper, actionName, jsonData) {   
+        var action = cmp.get(actionName)
+        action.setParams({jsonData : jsonData})       
         action.setCallback(this, function(response) {
-            var state = response.getState();
+            var state = response.getState()
             if (state === "SUCCESS") {
                 var jsonData = JSON.parse(response.getReturnValue())
                 helper.processRecords(cmp, helper, jsonData.records, jsonData.bookmarkedRecords)               
-                cmp.set('v.records', jsonData.records)
-                cmp.set('v.totalNumberOfRows', jsonData.totalNumberOfRows)
-                cmp.set('v.enableInfiniteLoading', true);                
+                cmp.set('v.allRecords', jsonData.records)
+                var records = helper.fetchData(cmp, helper, jsonData.records, [])
+                cmp.set('v.records', records)           
             }else if (state === "ERROR") {
-                var errors = response.getError();
-                if (errors) {
-                    if (errors[0] && errors[0].message) {
-                        console.log("Error message: " + errors[0].message);
-                    }
-                } else {
-                    console.log("Unknown error");
-                }
+                helper.handleErrorResponse(response)
             }
         })
         $A.enqueueAction(action)        
@@ -119,5 +101,16 @@
             recordId: recordId
         });
         navEvt.fire();      
+    },     
+    
+    handleErrorResponse : function(response) {   
+        var errors = response.getError()
+        if (errors) {
+            if (errors[0] && errors[0].message) {
+                console.log("Error message: " + errors[0].message)
+            }
+        } else {
+            console.log("Unknown error")
+        }     
     },     
 })

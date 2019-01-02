@@ -12,3 +12,17 @@
 .THIS.flexbox-container > div:nth-child(2) {
 	margin-left:10px;
 }
+.THIS .pageDescription{
+    margin-left: 10px;
+    display: inline;
+    font-weight: bold;
+}
+.THIS.header{
+    margin-bottom:10px;    
+}
+.THIS .similar-opportunity-criteria{
+    width: 20%;
+}
+.THIS .similar-opportunity-results{
+    width: 100%;
+}

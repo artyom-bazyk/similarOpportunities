@@ -16,14 +16,7 @@
                 }
                 
             }else if (state === "ERROR") {
-                var errors = response.getError();
-                if (errors) {
-                    if (errors[0] && errors[0].message) {
-                        console.log("Error message: " + errors[0].message);
-                    }
-                } else {
-                    console.log("Unknown error");
-                }
+                helper.handleErrorResponse(response)
             }
         });
         
@@ -62,21 +55,24 @@
         var columns = [ { label: 'Name', fieldName: 'LinkName', type: 'url', typeAttributes: {label: { fieldName: 'Name' }, target: '_top'} }
                       ]
         fieldDescriptionList.forEach(function(fieldDescription){
-            var column = {label: fieldDescription.label, fieldName: fieldDescription.apiName, type: fieldDescription.type.toLowerCase()}
-            if(column.type === 'currency'
-               || column.type === 'percent'){
-                column.cellAttributes = { alignment: 'left' }
-            }else if(column.type === 'date'){
-                column.typeAttributes = {month:"2-digit", day:"2-digit"}
-                column.type = 'date-local'
-            }else if(column.type === 'reference'){
-                var linkName = fieldDescription.apiRelationshipName + '_' + fieldDescription.apiNameOnParent
-                var fieldName = fieldDescription.apiRelationshipName + '_LinkName'
-                column.typeAttributes = {label: { fieldName: linkName }, target: '_top'}
-                column.type = 'url'
-                column.fieldName = fieldName
+            if(fieldDescription.apiName != 'Name'){                
+                var column = {label: fieldDescription.label, fieldName: fieldDescription.apiName, type: fieldDescription.type.toLowerCase()}
+                if(column.type === 'currency'
+                   || column.type === 'percent'){
+                    column.cellAttributes = { alignment: 'left' }
+                }else if(column.type === 'date'){
+                    column.typeAttributes = {month:"2-digit", day:"2-digit"}
+                    column.type = 'date-local'
+                }else if(column.type === 'reference'){
+                    var linkName = fieldDescription.apiRelationshipName + '_' + fieldDescription.apiNameOnParent
+                    var fieldName = fieldDescription.apiRelationshipName + '_LinkName'
+                    column.typeAttributes = {label: { fieldName: linkName }, target: '_top'}
+                    column.type = 'url'
+                    column.fieldName = fieldName
+                }
+                columns.push(column)
             }
-            columns.push(column)
+            
         })    
         var actions = {
             type: 'action', 
@@ -85,5 +81,16 @@
         columns.push(actions)
         return columns
 	},
+    
+    handleErrorResponse : function(response) {   
+        var errors = response.getError()
+        if (errors) {
+            if (errors[0] && errors[0].message) {
+                console.log("Error message: " + errors[0].message)
+            }
+        } else {
+            console.log("Unknown error")
+        }     
+    },     
     
 })

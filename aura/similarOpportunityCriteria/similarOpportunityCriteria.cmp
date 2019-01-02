@@ -1,16 +1,16 @@
 <aura:component >
-    <aura:attribute name="nodes" type="List" required="true"/>    
-    <aura:attribute name="selectedMonth" type="String" />    
-    <aura:attribute name="monthsRange" type="String[]" default="Last 3 months,Last 3-6 months,Last 6-9 months,Last 9-12 months"/>
+    <aura:attribute name="fieldDescriptionList" type="List" required="true"/>    
+    <aura:attribute name="selectedMonth" type="String" required="true"/>    
+    <aura:attribute name="monthsRange" type="String[]" default="Last 3 months,Last 3-6 months,Last 6-9 months,Last 9-12 months" access="private"/>
     
-    <aura:registerEvent name="similarOpportunityCriteriaChanged" type="c:similarOpportunityCriteriaChanged"/>
+    <aura:registerEvent name="similarOpportunityCriteriaChanged" type="c:similarOpportunityCriteriaChanged"/> 
     
-    <lightning:card title="Match Criteria" class="card-style">
+    <lightning:card title="" class="card-style">
         <p class="slds-p-horizontal_small">     
             <lightning:accordion allowMultipleSectionsOpen="true" activeSectionName="name">
                 <lightning:accordionSection name="name" label="Close Date Within">
                     <aura:set attribute="body">
-                        <ui:inputSelect value="{!v.selectedMonth}" class="close-date-select" change="{!c.onCriteriaClick}" >
+                        <ui:inputSelect aura:id="criteria" value="{!v.selectedMonth}" class="close-date-select" change="{!c.onCriteriaClick}" >
                             <aura:iteration items="{!v.monthsRange}" var="month" indexVar="index">
                                 <option text="{!month}" value="{!(index+1)*3}"/>
                             </aura:iteration>                            
@@ -19,14 +19,14 @@
                 </lightning:accordionSection>
             </lightning:accordion>	            
             
-            <aura:iteration items="{!v.nodes}" var="node">
-                <aura:if isTrue="{!node.value != null}">
+            <aura:iteration items="{!v.fieldDescriptionList}" var="fieldDescription">
+                <aura:if isTrue="{!fieldDescription.value != null}">
                     <lightning:accordion allowMultipleSectionsOpen="true" activeSectionName="name">
-                        <lightning:accordionSection name="name" label="{!node.label}">
+                        <lightning:accordionSection name="name" label="{!fieldDescription.label}">
                             <aura:set attribute="body">
                                 <lightning:layout multipleRows="true" >
                                     <lightning:layoutItem padding="horizontal-small"> 
-                                        <lightning:input type="checkbox" aura:id="criteria" label="{!node.value}" value="{!node.apiName}" name="{!node.value}" onchange="{!c.onCriteriaClick}"/>                                    
+                                        <lightning:input type="checkbox" aura:id="criteria" label="{!fieldDescription.value}" value="{!fieldDescription.apiName}" name="{!fieldDescription.value}" onchange="{!c.onCriteriaClick}"/>                                    
                                     </lightning:layoutItem>
                                 </lightning:layout>
                                 

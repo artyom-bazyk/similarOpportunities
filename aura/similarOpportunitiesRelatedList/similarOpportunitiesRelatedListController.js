@@ -1,10 +1,9 @@
 ({
 	init : function(cmp, event, helper) {
         var allFieldsSet = new Set([cmp.get("v.field1"), cmp.get("v.field2"), cmp.get("v.field3"), cmp.get("v.field4"), cmp.get("v.field5")])
-        allFieldsSet.delete('Name')
         var allFields = Array.from(allFieldsSet)
         cmp.set("v.allFields", allFields)	
-        var jsonData = JSON.stringify({fields:allFields.join(','),
+        var jsonData = JSON.stringify({allFields:allFields.join(','),
                                        recordId:cmp.get('v.recordId'),
                                        rowsToLoad:cmp.get("v.rowsToLoad"),
                                        rowsToSkip:0
@@ -32,14 +31,7 @@
                 var totalNumberOfRows = cmp.get('v.totalNumberOfRows')
                 cmp.set('v.totalNumberOfRows', totalNumberOfRows - 1)    
             }else if (state === "ERROR") {
-                var errors = response.getError();
-                if (errors) {
-                    if (errors[0] && errors[0].message) {
-                        console.log("Error message: " + errors[0].message);
-                    }
-                } else {
-                    console.log("Unknown error");
-                }
+                helper.handleErrorResponse(response)
             }
         });
         
